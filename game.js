@@ -1,4 +1,4 @@
-// Arquivo: game.js - VERSÃO COM JOGABILIDADE E GRÁFICOS REFINADOS
+// Arquivo: game.js - VERSÃO COM PACING AJUSTADO
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -9,13 +9,14 @@ canvas.height = window.innerHeight;
 // --- ESTADO DO JOGO ---
 let gameState = 'start';
 
-// --- VARIÁVEIS DO JOGO (Agora baseadas no tamanho da tela) ---
+// --- VARIÁVEIS DO JOGO ---
 const gravity = canvas.height * 0.00055;
 const jumpStrength = -(canvas.height * 0.011);
 const pipeSpeed = canvas.width * 0.003;
-const pipeGap = canvas.height * 0.22;
-// ATUALIZADO: Aumentamos a distância entre os canos de 120 para 150 frames.
-const pipeInterval = 150; 
+const MIN_PIPE_GAP = canvas.height * 0.21;
+const MAX_PIPE_GAP = canvas.height * 0.28;
+// ATUALIZADO: Aumentamos a distância horizontal entre os canos de 150 para 180.
+const pipeInterval = 180; 
 let frameCount = 0;
 
 // --- VARIÁVEIS DO PÁSSARO ---
@@ -52,6 +53,16 @@ function handleInput() {
     if (gameState === 'gameOver') resetGame();
 }
 
+// ATUALIZADO: Função para gerar um único cano
+function generatePipe() {
+    const newPipeGap = Math.random() * (MAX_PIPE_GAP - MIN_PIPE_GAP) + MIN_PIPE_GAP;
+    const minHeight = canvas.height * 0.1;
+    const maxHeight = canvas.height - newPipeGap - minHeight;
+    let pipeY = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+    pipes.push({ x: canvas.width, y: pipeY, gap: newPipeGap, passed: false });
+}
+
+
 function resetGame() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -64,12 +75,15 @@ function resetGame() {
     gameState = 'start';
     clouds = []; 
     generateInitialClouds();
+    
+    // ATUALIZADO: Gera o primeiro cano imediatamente para que ele apareça rápido.
+    generatePipe(); 
 }
 
-// ATUALIZADO: Função para gerar nuvens com aparência melhor
 function generateCloud() {
+    // ... (código das nuvens não muda) ...
     const y = Math.random() * (canvas.height * 0.6);
-    const numCircles = 3 + Math.floor(Math.random() * 3); // Nuvens com 3 a 5 "gomos"
+    const numCircles = 3 + Math.floor(Math.random() * 3);
     const baseRadius = 15 + Math.random() * 10;
     const circles = [];
     for (let i = 0; i < numCircles; i++) {
@@ -83,8 +97,9 @@ function generateCloud() {
 }
 
 function generateInitialClouds() {
+    // ... (código das nuvens não muda) ...
     for(let i = 0; i < 5; i++) {
-        const x = Math.random() * canvas.width; // Espalha as nuvens iniciais
+        const x = Math.random() * canvas.width;
         const y = Math.random() * (canvas.height * 0.6);
         const numCircles = 3 + Math.floor(Math.random() * 3);
         const baseRadius = 15 + Math.random() * 10;
@@ -106,21 +121,20 @@ function updateGame() {
     if (bird.y + bird.height > canvas.height || bird.y < 0) gameState = 'gameOver';
 
     frameCount++;
+    // ATUALIZADO: Agora só gera novos canos DEPOIS que o primeiro já está em jogo.
     if (frameCount % pipeInterval === 0) {
-        // ATUALIZADO: Lógica de altura dos canos mais segura.
-        // Garante que o cano de cima tenha pelo menos 10% da altura da tela e o de baixo também.
-        const minHeight = canvas.height * 0.1;
-        const maxHeight = canvas.height - pipeGap - minHeight;
-        let pipeY = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-        pipes.push({ x: canvas.width, y: pipeY, passed: false });
+        generatePipe();
     }
     if (frameCount % 200 === 0) generateCloud();
 
     for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         p.x -= pipeSpeed;
+        
         if (bird.x < p.x + pipeWidth && bird.x + bird.width > p.x &&
-            (bird.y < p.y || bird.y + bird.height > p.y + pipeGap)) gameState = 'gameOver';
+            (bird.y < p.y || bird.y + bird.height > p.y + p.gap)) {
+            gameState = 'gameOver';
+        }
         if (p.x + pipeWidth < bird.x && !p.passed) { score++; p.passed = true; }
         if (p.x + pipeWidth < 0) pipes.splice(i, 1);
     }
@@ -141,8 +155,7 @@ function updateGame() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // ATUALIZADO: Desenha nuvens com formato de círculos
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // Nuvens levemente transparentes
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     for (const cloud of clouds) {
         for (const circle of cloud.circles) {
             ctx.beginPath();
@@ -153,16 +166,13 @@ function draw() {
 
     for (let p of pipes) {
         const topPipeHeight = p.y;
-        const bottomPipeY = p.y + pipeGap;
-        // Corpo do cano
+        const bottomPipeY = p.y + p.gap;
         ctx.fillStyle = '#73BF29';
         ctx.fillRect(p.x, 0, pipeWidth, topPipeHeight);
         ctx.fillRect(p.x, bottomPipeY, pipeWidth, canvas.height - bottomPipeY);
-        // Sombra para dar profundidade
         ctx.fillStyle = '#55801F';
         ctx.fillRect(p.x + pipeWidth - 10, 0, 10, topPipeHeight);
         ctx.fillRect(p.x + pipeWidth - 10, bottomPipeY, 10, canvas.height - bottomPipeY);
-        // Boca do cano
         const capHeight = canvas.height * 0.04;
         ctx.fillStyle = '#73BF29';
         ctx.fillRect(p.x - 5, topPipeHeight - capHeight, pipeWidth + 10, capHeight);
@@ -176,6 +186,7 @@ function draw() {
         ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
     }
     
+    // ... (o código para desenhar os textos de pontuação e game over não muda) ...
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.strokeStyle = 'black';
@@ -202,7 +213,6 @@ function draw() {
     }
 
     if (gameState === 'gameOver') {
-        // ... (código da tela de game over não precisa mudar) ...
         ctx.font = `${mediumFontSize}px Arial`;
         ctx.strokeText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
         ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
