@@ -1,9 +1,8 @@
-// Arquivo: game.js - VERSÃO RESPONSIVA E COM GRÁFICOS MELHORADOS
+// Arquivo: game.js - VERSÃO COM JOGABILIDADE E GRÁFICOS REFINADOS
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// ATUALIZADO: O canvas agora pega o tamanho da janela
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -11,19 +10,20 @@ canvas.height = window.innerHeight;
 let gameState = 'start';
 
 // --- VARIÁVEIS DO JOGO (Agora baseadas no tamanho da tela) ---
-const gravity = canvas.height * 0.00055; // Gravidade proporcional à altura
-const jumpStrength = -(canvas.height * 0.011); // Força do pulo proporcional
-const pipeSpeed = canvas.width * 0.003; // Velocidade dos canos proporcional
-const pipeGap = canvas.height * 0.22; // Espaço entre os canos
-const pipeInterval = 120; // Distância entre os canos (ainda em frames)
+const gravity = canvas.height * 0.00055;
+const jumpStrength = -(canvas.height * 0.011);
+const pipeSpeed = canvas.width * 0.003;
+const pipeGap = canvas.height * 0.22;
+// ATUALIZADO: Aumentamos a distância entre os canos de 120 para 150 frames.
+const pipeInterval = 150; 
 let frameCount = 0;
 
-// --- VARIÁVEIS DO PÁSSARO (Agora com tamanho proporcional) ---
+// --- VARIÁVEIS DO PÁSSARO ---
 let bird = {
     x: canvas.width / 5,
     y: canvas.height / 3,
     width: canvas.width * 0.09,
-    height: canvas.width * 0.09, // Pássaro quadrado
+    height: canvas.width * 0.09,
     velocityY: 0
 };
 const birdImages = [];
@@ -36,7 +36,7 @@ for (let i = 0; i < numBirdFrames; i++) {
 
 // --- VARIÁVEIS DOS CANOS E PONTUAÇÃO ---
 let pipes = [];
-let pipeWidth = canvas.width * 0.18; // Largura dos canos proporcional
+let pipeWidth = canvas.width * 0.18;
 let score = 0;
 let highScore = localStorage.getItem('flappyBoloHighScore') || 0;
 
@@ -53,6 +53,9 @@ function handleInput() {
 }
 
 function resetGame() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
     bird.y = canvas.height / 3;
     bird.velocityY = 0;
     pipes = [];
@@ -63,20 +66,37 @@ function resetGame() {
     generateInitialClouds();
 }
 
+// ATUALIZADO: Função para gerar nuvens com aparência melhor
 function generateCloud() {
     const y = Math.random() * (canvas.height * 0.6);
-    const width = 50 + Math.random() * 50;
-    const height = 20 + Math.random() * 20;
-    clouds.push({ x: canvas.width, y: y, width: width, height: height });
+    const numCircles = 3 + Math.floor(Math.random() * 3); // Nuvens com 3 a 5 "gomos"
+    const baseRadius = 15 + Math.random() * 10;
+    const circles = [];
+    for (let i = 0; i < numCircles; i++) {
+        circles.push({
+            offsetX: (i * baseRadius * 1.2) - (numCircles * baseRadius * 0.6),
+            offsetY: (Math.random() - 0.5) * baseRadius * 0.5,
+            radius: baseRadius * (0.8 + Math.random() * 0.4)
+        });
+    }
+    clouds.push({ x: canvas.width + 50, y: y, circles: circles });
 }
 
 function generateInitialClouds() {
     for(let i = 0; i < 5; i++) {
+        const x = Math.random() * canvas.width; // Espalha as nuvens iniciais
         const y = Math.random() * (canvas.height * 0.6);
-        const x = Math.random() * canvas.width;
-        const width = 50 + Math.random() * 50;
-        const height = 20 + Math.random() * 20;
-        clouds.push({ x: x, y: y, width: width, height: height });
+        const numCircles = 3 + Math.floor(Math.random() * 3);
+        const baseRadius = 15 + Math.random() * 10;
+        const circles = [];
+        for (let j = 0; j < numCircles; j++) {
+            circles.push({
+                offsetX: (j * baseRadius * 1.2) - (numCircles * baseRadius * 0.6),
+                offsetY: (Math.random() - 0.5) * baseRadius * 0.5,
+                radius: baseRadius * (0.8 + Math.random() * 0.4)
+            });
+        }
+        clouds.push({ x: x, y: y, circles: circles });
     }
 }
 
@@ -87,7 +107,11 @@ function updateGame() {
 
     frameCount++;
     if (frameCount % pipeInterval === 0) {
-        let pipeY = (Math.random() * (canvas.height - pipeGap - (canvas.height * 0.2))) + (canvas.height * 0.1);
+        // ATUALIZADO: Lógica de altura dos canos mais segura.
+        // Garante que o cano de cima tenha pelo menos 10% da altura da tela e o de baixo também.
+        const minHeight = canvas.height * 0.1;
+        const maxHeight = canvas.height - pipeGap - minHeight;
+        let pipeY = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
         pipes.push({ x: canvas.width, y: pipeY, passed: false });
     }
     if (frameCount % 200 === 0) generateCloud();
@@ -103,7 +127,7 @@ function updateGame() {
 
     for (let i = clouds.length - 1; i >= 0; i--) {
         clouds[i].x -= cloudSpeed;
-        if (clouds[i].x + clouds[i].width < 0) clouds.splice(i, 1);
+        if (clouds[i].x < -100) clouds.splice(i, 1);
     }
 
     if (gameState === 'gameOver') {
@@ -117,21 +141,28 @@ function updateGame() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = 'white';
+    // ATUALIZADO: Desenha nuvens com formato de círculos
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // Nuvens levemente transparentes
     for (const cloud of clouds) {
-        ctx.fillRect(cloud.x, cloud.y, cloud.width, cloud.height);
+        for (const circle of cloud.circles) {
+            ctx.beginPath();
+            ctx.arc(cloud.x + circle.offsetX, cloud.y + circle.offsetY, circle.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
     for (let p of pipes) {
         const topPipeHeight = p.y;
         const bottomPipeY = p.y + pipeGap;
-        const bottomPipeHeight = canvas.height - bottomPipeY;
+        // Corpo do cano
         ctx.fillStyle = '#73BF29';
         ctx.fillRect(p.x, 0, pipeWidth, topPipeHeight);
-        ctx.fillRect(p.x, bottomPipeY, pipeWidth, bottomPipeHeight);
+        ctx.fillRect(p.x, bottomPipeY, pipeWidth, canvas.height - bottomPipeY);
+        // Sombra para dar profundidade
         ctx.fillStyle = '#55801F';
         ctx.fillRect(p.x + pipeWidth - 10, 0, 10, topPipeHeight);
-        ctx.fillRect(p.x + pipeWidth - 10, bottomPipeY, 10, bottomPipeHeight);
+        ctx.fillRect(p.x + pipeWidth - 10, bottomPipeY, 10, canvas.height - bottomPipeY);
+        // Boca do cano
         const capHeight = canvas.height * 0.04;
         ctx.fillStyle = '#73BF29';
         ctx.fillRect(p.x - 5, topPipeHeight - capHeight, pipeWidth + 10, capHeight);
@@ -171,6 +202,7 @@ function draw() {
     }
 
     if (gameState === 'gameOver') {
+        // ... (código da tela de game over não precisa mudar) ...
         ctx.font = `${mediumFontSize}px Arial`;
         ctx.strokeText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
         ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
@@ -185,7 +217,7 @@ function draw() {
 }
 
 function gameLoop() {
-    if (gameState === 'playing') updateGame();
+    if (gameState !== 'gameOver') updateGame();
     draw();
     requestAnimationFrame(gameLoop);
 }
@@ -194,11 +226,7 @@ document.addEventListener('click', handleInput);
 document.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); });
 document.addEventListener('keydown', (e) => { if (e.code === 'Space') { handleInput(); } });
 
-window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    resetGame();
-});
+window.addEventListener('resize', resetGame);
 
 resetGame();
 gameLoop();
