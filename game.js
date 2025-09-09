@@ -1,4 +1,4 @@
-// Arquivo: game.js - VERSÃO COM RANKING (HIGH SCORE)
+// Arquivo: game.js - Versão com Imagens do Player e Animação
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -14,8 +14,24 @@ const pipeGap = 120;
 const pipeInterval = 120;
 let frameCount = 0;
 
-// --- VARIÁVEIS DO PÁSSARO ---
-let bird = { x: 50, y: 150, width: 20, height: 20, velocityY: 0 };
+// --- VARIÁVEIS DO PÁSSARO (AGORA COM IMAGENS) ---
+let bird = {
+    x: 50,
+    y: 150,
+    width: 32, // Largura da sua imagem pixelada (ajuste se necessário)
+    height: 24, // Altura da sua imagem pixelada (ajuste se necessário)
+    velocityY: 0
+};
+
+// NOVO: Carregar as imagens do pássaro
+const birdImages = [];
+const numBirdFrames = 2; // Altere para o número de frames que você criou (ex: 2 ou 3)
+for (let i = 0; i < numBirdFrames; i++) {
+    const img = new Image();
+    img.src = `player_frame_${i}.png`; // Certifique-se que o nome do arquivo corresponde ao que você salvou
+    birdImages.push(img);
+}
+let currentBirdFrame = 0; // Para controlar a animação
 
 // --- VARIÁVEIS DOS CANOS ---
 let pipes = [];
@@ -23,7 +39,6 @@ let pipeWidth = 50;
 
 // --- PONTUAÇÃO E RANKING ---
 let score = 0;
-// NOVO: Carrega o High Score salvo no navegador. Se não existir, começa com 0.
 let highScore = localStorage.getItem('flappyBoloHighScore') || 0;
 
 function handleInput() {
@@ -88,29 +103,38 @@ function updateGame() {
         }
     }
 
-    // NOVO: Lógica de High Score
+    // Lógica de High Score
     if (gameState === 'gameOver') {
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('flappyBoloHighScore', highScore); // Salva no navegador
+            localStorage.setItem('flappyBoloHighScore', highScore);
         }
+    }
+
+    // NOVO: Atualiza o frame da animação do pássaro
+    if (frameCount % 5 === 0) { // Mude o '5' para alterar a velocidade da animação
+        currentBirdFrame = (currentBirdFrame + 1) % numBirdFrames;
     }
 }
 
 function draw() {
-    // Limpa a tela
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Desenha os canos
     ctx.fillStyle = 'green';
     for (let p of pipes) {
-        ctx.fillRect(p.x, 0, pipeWidth, p.y); // Cano de cima
+        ctx.fillRect(p.x, 0, pipeWidth, p.y);
         ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height - (p.y + pipeGap));
     }
 
-    // Desenha o pássaro
-    ctx.fillStyle = 'yellow';
-    ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    // NOVO: Desenha a imagem do pássaro em vez do retângulo amarelo
+    if (birdImages[currentBirdFrame].complete) { // Verifica se a imagem já carregou
+        ctx.drawImage(birdImages[currentBirdFrame], bird.x, bird.y, bird.width, bird.height);
+    } else {
+        // Fallback: se a imagem não carregou, desenha o quadrado amarelo
+        ctx.fillStyle = 'yellow';
+        ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    }
     
     // Desenha textos e pontuação
     ctx.fillStyle = 'white';
@@ -119,7 +143,6 @@ function draw() {
     if (gameState === 'start') {
         ctx.font = '24px Arial';
         ctx.fillText('Clique para Começar', canvas.width / 2, canvas.height / 2);
-        // NOVO: Mostra o High Score na tela inicial
         if (highScore > 0) {
             ctx.font = '20px Arial';
             ctx.fillText(`Melhor Pontuação: ${highScore}`, canvas.width / 2, canvas.height / 2 + 40);
@@ -134,7 +157,6 @@ function draw() {
     if (gameState === 'gameOver') {
         ctx.font = '32px Arial';
         ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
-        // NOVO: Mostra a pontuação final e o High Score
         ctx.font = '20px Arial';
         ctx.fillText(`Pontuação: ${score}`, canvas.width / 2, canvas.height / 2);
         ctx.fillText(`Melhor: ${highScore}`, canvas.width / 2, canvas.height / 2 + 30);
@@ -156,5 +178,5 @@ document.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput
 document.addEventListener('keydown', (e) => { if (e.code === 'Space') { handleInput(); } });
 
 // Inicia o jogo
-resetGame(); // Garante que o estado inicial está correto
+resetGame();
 gameLoop();
