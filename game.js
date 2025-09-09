@@ -1,4 +1,4 @@
-// Arquivo: game.js - VERSÃO COMPLETA DO JOGO
+// Arquivo: game.js - VERSÃO COM RANKING (HIGH SCORE)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -10,25 +10,21 @@ let gameState = 'start'; // 'start', 'playing', 'gameOver'
 const gravity = 0.3;
 const jumpStrength = -6;
 const pipeSpeed = 2;
-const pipeGap = 120; // Espaço vertical entre os canos
-const pipeInterval = 120; // Distância horizontal entre os canos
+const pipeGap = 120;
+const pipeInterval = 120;
 let frameCount = 0;
 
 // --- VARIÁVEIS DO PÁSSARO ---
-let bird = {
-    x: 50,
-    y: 150,
-    width: 20,
-    height: 20,
-    velocityY: 0
-};
+let bird = { x: 50, y: 150, width: 20, height: 20, velocityY: 0 };
 
 // --- VARIÁVEIS DOS CANOS ---
 let pipes = [];
 let pipeWidth = 50;
 
-// --- PONTUAÇÃO ---
+// --- PONTUAÇÃO E RANKING ---
 let score = 0;
+// NOVO: Carrega o High Score salvo no navegador. Se não existir, começa com 0.
+let highScore = localStorage.getItem('flappyBoloHighScore') || 0;
 
 function handleInput() {
     if (gameState === 'start') {
@@ -38,7 +34,6 @@ function handleInput() {
         bird.velocityY = jumpStrength;
     }
     if (gameState === 'gameOver') {
-        // Reseta o jogo ao clicar depois de perder
         resetGame();
         gameState = 'start';
     }
@@ -50,62 +45,67 @@ function resetGame() {
     pipes = [];
     score = 0;
     frameCount = 0;
+    gameState = 'start';
 }
 
-function gameLoop() {
-    // 1. Limpa a tela
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // --- LÓGICA DO JOGO ---
-    if (gameState === 'playing') {
-        // Pássaro
-        bird.velocityY += gravity;
-        bird.y += bird.velocityY;
+function updateGame() {
+    // Pássaro
+    bird.velocityY += gravity;
+    bird.y += bird.velocityY;
 
-        // Canos
-        frameCount++;
-        if (frameCount % pipeInterval === 0) {
-            // Gera um novo cano
-            let pipeY = Math.random() * (canvas.height - pipeGap - 100) + 50;
-            pipes.push({ x: canvas.width, y: pipeY });
-        }
-        
-        // Move os canos e checa pontuação/colisão
-        for (let i = pipes.length - 1; i >= 0; i--) {
-            let p = pipes[i];
-            p.x -= pipeSpeed;
-            
-            // Checa colisão
-            if (bird.x < p.x + pipeWidth &&
-                bird.x + bird.width > p.x &&
-                (bird.y < p.y || bird.y + bird.height > p.y + pipeGap)) {
-                gameState = 'gameOver';
-            }
-            
-            // Checa pontuação
-            if (p.x + pipeWidth < bird.x && !p.passed) {
-                score++;
-                p.passed = true;
-            }
+    // Colisão com chão ou teto
+    if (bird.y + bird.height > canvas.height || bird.y < 0) {
+        gameState = 'gameOver';
+    }
 
-            // Remove canos que saíram da tela
-            if (p.x + pipeWidth < 0) {
-                pipes.splice(i, 1);
-            }
-        }
-        
-        // Colisão com chão ou teto
-        if (bird.y + bird.height > canvas.height || bird.y < 0) {
+    // Geração de Canos
+    frameCount++;
+    if (frameCount % pipeInterval === 0) {
+        let pipeY = Math.random() * (canvas.height - pipeGap - 100) + 50;
+        pipes.push({ x: canvas.width, y: pipeY, passed: false });
+    }
+
+    // Move os canos, checa colisão e pontuação
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        let p = pipes[i];
+        p.x -= pipeSpeed;
+
+        // Checa colisão com o cano
+        if (bird.x < p.x + pipeWidth && bird.x + bird.width > p.x &&
+            (bird.y < p.y || bird.y + bird.height > p.y + pipeGap)) {
             gameState = 'gameOver';
         }
+        
+        // Checa se passou pelo cano para pontuar
+        if (p.x + pipeWidth < bird.x && !p.passed) {
+            score++;
+            p.passed = true;
+        }
+
+        // Remove canos que saíram da tela
+        if (p.x + pipeWidth < 0) {
+            pipes.splice(i, 1);
+        }
     }
-    
-    // --- DESENHO NA TELA ---
+
+    // NOVO: Lógica de High Score
+    if (gameState === 'gameOver') {
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('flappyBoloHighScore', highScore); // Salva no navegador
+        }
+    }
+}
+
+function draw() {
+    // Limpa a tela
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     // Desenha os canos
     ctx.fillStyle = 'green';
     for (let p of pipes) {
         ctx.fillRect(p.x, 0, pipeWidth, p.y); // Cano de cima
-        ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height - (p.y + pipeGap)); // Cano de baixo
+        ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height - (p.y + pipeGap));
     }
 
     // Desenha o pássaro
@@ -114,11 +114,16 @@ function gameLoop() {
     
     // Desenha textos e pontuação
     ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
     ctx.textAlign = 'center';
 
     if (gameState === 'start') {
+        ctx.font = '24px Arial';
         ctx.fillText('Clique para Começar', canvas.width / 2, canvas.height / 2);
+        // NOVO: Mostra o High Score na tela inicial
+        if (highScore > 0) {
+            ctx.font = '20px Arial';
+            ctx.fillText(`Melhor Pontuação: ${highScore}`, canvas.width / 2, canvas.height / 2 + 40);
+        }
     }
     
     if (gameState === 'playing' || gameState === 'gameOver') {
@@ -128,11 +133,20 @@ function gameLoop() {
 
     if (gameState === 'gameOver') {
         ctx.font = '32px Arial';
-        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 40);
+        // NOVO: Mostra a pontuação final e o High Score
         ctx.font = '20px Arial';
-        ctx.fillText('Clique para Tentar Novamente', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText(`Pontuação: ${score}`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(`Melhor: ${highScore}`, canvas.width / 2, canvas.height / 2 + 30);
+        ctx.fillText('Clique para Tentar Novamente', canvas.width / 2, canvas.height / 2 + 70);
     }
-    
+}
+
+function gameLoop() {
+    if (gameState === 'playing') {
+        updateGame();
+    }
+    draw();
     requestAnimationFrame(gameLoop);
 }
 
@@ -142,4 +156,5 @@ document.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput
 document.addEventListener('keydown', (e) => { if (e.code === 'Space') { handleInput(); } });
 
 // Inicia o jogo
+resetGame(); // Garante que o estado inicial está correto
 gameLoop();
