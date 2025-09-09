@@ -1,3 +1,6 @@
+/* Arquivo: style.css */
+/* Localização: pasta 'game_html5' */
+
 body {
     display: flex;
     flex-direction: column;
@@ -5,12 +8,19 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
-    background-color: #70c5ce;
-    font-family: sans-serif;
+    background-color: #70c5ce; /* Cor de fundo principal */
+    font-family: 'Helvetica', sans-serif;
     color: white;
+    text-shadow: 2px 2px 2px #555;
+}
+
+h1 {
+    margin-bottom: 10px;
+    font-size: 24px;
 }
 
 canvas {
     border: 2px solid #000;
-    background-color: #87CEEB; /* Cor de céu */
+    background-color: #87CEEB; /* Cor de céu do jogo */
+    -webkit-tap-highlight-color: transparent; /* Remove o brilho ao tocar em mobile */
 }
