@@ -1,27 +1,18 @@
-// Arquivo: game.js - VERSÃO FINAL (TELA CHEIA ESTÁVEL + POLIMENTO EXTRA)
+// Arquivo: game.js - VERSÃO ESTÁVEL (TELA 405x720) COM POLIMENTO FINAL
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// ATUALIZADO: Usamos uma resolução virtual fixa para estabilidade
-const VIRTUAL_WIDTH = 288;
-const VIRTUAL_HEIGHT = 512;
-
-canvas.width = VIRTUAL_WIDTH;
-canvas.height = VIRTUAL_HEIGHT;
-
-let scale = 1; // Fator de escala para a tela cheia
-
 // --- ESTADO DO JOGO ---
 let gameState = 'start';
 
-// --- VARIÁVEIS DO JOGO (Valores fixos baseados na resolução virtual) ---
-const gravity = 0.25;
-const jumpStrength = -5;
-let pipeSpeed = 1.5;
-const MIN_PIPE_GAP = 100;
-const MAX_PIPE_GAP = 140;
-const pipeInterval = 200; // Aumentei um pouco mais para dar mais respiro
+// --- VARIÁVEIS DO JOGO (Valores ajustados para a nova resolução de 405x720) ---
+const gravity = 0.35;
+const jumpStrength = -7;
+const pipeSpeed = 2.2;
+const MIN_PIPE_GAP = 150;
+const MAX_PIPE_GAP = 200;
+const pipeInterval = 180;
 let frameCount = 0;
 
 // --- VARIÁVEIS DOS ELEMENTOS ---
@@ -29,17 +20,17 @@ let bird = {};
 const birdImages = [];
 const numBirdFrames = 1;
 let pipes = [];
-let pipeWidth = 55;
+let pipeWidth = 80;
 let score = 0;
 let highScore = localStorage.getItem('flappyBoloHighScore') || 0;
 let clouds = [];
-let cityscape = []; // NOVO: Array para a cidade no fundo
-let particles = []; // NOVO: Array para partículas de pulo
+let cityscape = [];
+let particles = [];
 
 // --- FUNÇÕES DE INICIALIZAÇÃO E RESET ---
 function resetGame() {
     gameState = 'start';
-    bird = { x: 60, y: 180, width: 34, height: 34, velocityY: 0, rotation: 0 };
+    bird = { x: 80, y: 250, width: 48, height: 48, velocityY: 0, rotation: 0 };
     pipes = [];
     score = 0;
     frameCount = 0;
@@ -50,32 +41,12 @@ function resetGame() {
     generatePipe();
 }
 
-function resizeAndScale() {
-    const aspectRatio = VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
-    const windowRatio = window.innerWidth / window.innerHeight;
-    
-    if (windowRatio > aspectRatio) {
-        // Janela mais larga que o jogo
-        canvas.height = window.innerHeight;
-        canvas.width = canvas.height * aspectRatio;
-    } else {
-        // Janela mais alta que o jogo
-        canvas.width = window.innerWidth;
-        canvas.height = canvas.width / aspectRatio;
-    }
-    scale = canvas.width / VIRTUAL_WIDTH;
-}
-
-
 // --- FUNÇÕES DE GERAÇÃO DE ELEMENTOS ---
-function generatePipe() { const newPipeGap = Math.random()*(MAX_PIPE_GAP-MIN_PIPE_GAP)+MIN_PIPE_GAP; const minHeight=40; const maxHeight=VIRTUAL_HEIGHT-newPipeGap-80; let pipeY=Math.floor(Math.random()*(maxHeight-minHeight+1))+minHeight; pipes.push({x:VIRTUAL_WIDTH,y:pipeY,gap:newPipeGap,passed:false}); }
-function generateCloud() { const y=Math.random()*(VIRTUAL_HEIGHT*0.5); const w=50+Math.random()*40; const h=20+Math.random()*10; clouds.push({x:VIRTUAL_WIDTH+w,y,width:w,height:h}); }
-function generateInitialClouds() { for(let i=0;i<5;i++){const x=Math.random()*VIRTUAL_WIDTH; generateCloud(); clouds[clouds.length-1].x=x;} }
-function generateCityscape() { let currentX = -30; while(currentX < VIRTUAL_WIDTH + 50){ const h = 50 + Math.random() * 80; const w = 20 + Math.random() * 30; cityscape.push({x:currentX, y:VIRTUAL_HEIGHT-h, width:w, height:h}); currentX += w + 2; } }
-
-// NOVO: Função para criar partículas de pulo
-function createFlapParticles() { for(let i=0; i<5; i++){ particles.push({ x: bird.x, y: bird.y + bird.height, radius: Math.random()*2+1, vx: (Math.random()-0.5)*1.5, vy: Math.random()*1.5+0.5, life: 30 }); } }
-// NOVO: Função de tremer a tela
+function generatePipe() { const newPipeGap = Math.random()*(MAX_PIPE_GAP-MIN_PIPE_GAP)+MIN_PIPE_GAP; const minHeight=60; const maxHeight=canvas.height-newPipeGap-100; let pipeY=Math.floor(Math.random()*(maxHeight-minHeight+1))+minHeight; pipes.push({x:canvas.width,y:pipeY,gap:newPipeGap,passed:false}); }
+function generateCloud() { const y=Math.random()*(canvas.height*0.6); const w=70+Math.random()*60; const h=25+Math.random()*15; clouds.push({x:canvas.width+w,y,width:w,height:h}); }
+function generateInitialClouds() { for(let i=0;i<5;i++){const x=Math.random()*canvas.width; generateCloud(); clouds[clouds.length-1].x=x;} }
+function generateCityscape() { let currentX = -40; while(currentX < canvas.width + 60){ const h = 70 + Math.random() * 100; const w = 30 + Math.random() * 40; cityscape.push({x:currentX, y:canvas.height-h, width:w, height:h}); currentX += w + 3; } }
+function createFlapParticles() { for(let i=0; i<5; i++){ particles.push({ x: bird.x + bird.width/2, y: bird.y + bird.height/2, radius: Math.random()*2+1, vx: (Math.random()-0.5)*1.5, vy: Math.random()*1.5+0.5, life: 30 }); } }
 function screenShake() { document.body.style.animation = 'shake 0.2s'; setTimeout(()=>document.body.style.animation = '', 200); }
 
 
@@ -84,19 +55,18 @@ function handleInput() {
     if (gameState === 'start') gameState = 'playing';
     if (gameState === 'playing') {
         bird.velocityY = jumpStrength;
-        createFlapParticles(); // Cria partículas ao pular
+        createFlapParticles();
     }
     if (gameState === 'gameOver') resetGame();
 }
 
 function updateGame() {
-    // Pássaro
-    bird.velocityY += gravity; bird.y += bird.velocityY;
-    if(bird.velocityY < 0) bird.rotation = -0.3; else { bird.rotation += 0.04; if(bird.rotation > 1) bird.rotation = 1; }
-    if (bird.y > VIRTUAL_HEIGHT || bird.y + bird.height < 0) { screenShake(); gameState = 'gameOver'; }
-
-    // Canos, Nuvens, Cidade, Partículas
     if (gameState !== 'playing') return;
+    
+    bird.velocityY += gravity; bird.y += bird.velocityY;
+    if(bird.velocityY < 0) bird.rotation = -0.35; else { bird.rotation += 0.04; if(bird.rotation > 1.2) bird.rotation = 1.2; }
+    if (bird.y > canvas.height || bird.y + bird.height < 0) { screenShake(); gameState = 'gameOver'; }
+
     frameCount++;
     if(frameCount % pipeInterval === 0) generatePipe();
     if(frameCount % 250 === 0) generateCloud();
@@ -114,72 +84,52 @@ function updateGame() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // ATUALIZADO: Aplica a escala para preencher a tela
-    ctx.save();
-    ctx.scale(scale, scale);
-
-    // Fundo com Gradiente
-    const skyGradient = ctx.createLinearGradient(0,0,0,VIRTUAL_HEIGHT);
+    const skyGradient = ctx.createLinearGradient(0,0,0,canvas.height);
     skyGradient.addColorStop(0, '#3a7bd5'); skyGradient.addColorStop(1, '#a6c1ee');
-    ctx.fillStyle = skyGradient; ctx.fillRect(0,0,VIRTUAL_WIDTH,VIRTUAL_HEIGHT);
+    ctx.fillStyle = skyGradient; ctx.fillRect(0,0,canvas.width,canvas.height);
     
-    // Cidade no fundo (Paralaxe)
-    ctx.fillStyle = '#1e3040';
-    cityscape.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
-
-    // Nuvens
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    clouds.forEach(c => ctx.fillRect(c.x, c.y, c.width, c.height));
+    ctx.fillStyle = '#1e3040'; cityscape.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; clouds.forEach(c => ctx.fillRect(c.x, c.y, c.width, c.height));
     
-    // Canos
     pipes.forEach(p => {
         const pipeGradient = ctx.createLinearGradient(p.x,0,p.x+pipeWidth,0);
         pipeGradient.addColorStop(0,'#55801F'); pipeGradient.addColorStop(0.5,'#73BF29'); pipeGradient.addColorStop(1,'#55801F');
         ctx.fillStyle = pipeGradient;
+        const capH = 30;
         ctx.fillRect(p.x, 0, pipeWidth, p.y);
-        ctx.fillRect(p.x, p.y + p.gap, pipeWidth, VIRTUAL_HEIGHT - (p.y + p.gap));
-        const capH = 20;
+        ctx.fillRect(p.x, p.y + p.gap, pipeWidth, canvas.height - (p.y + p.gap));
         ctx.fillRect(p.x - 5, p.y - capH, pipeWidth + 10, capH);
         ctx.fillRect(p.x - 5, p.y + p.gap, pipeWidth + 10, capH);
     });
     
-    // Partículas de Pulo
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); });
 
-    // Pássaro
     ctx.save();
     ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
     ctx.rotate(bird.rotation);
     if (birdImages[0] && birdImages[0].complete) { ctx.drawImage(birdImages[0], -bird.width / 2, -bird.height / 2, bird.width, bird.height); }
     ctx.restore();
     
-    // Textos
-    const largeFontSize=40, mediumFontSize=28, smallFontSize=22;
-    ctx.fillStyle = 'white'; ctx.strokeStyle = 'black'; ctx.lineWidth = 4; ctx.textAlign = 'center';
+    const largeFontSize=50, mediumFontSize=36, smallFontSize=28;
+    ctx.fillStyle = 'white'; ctx.strokeStyle = 'black'; ctx.lineWidth = 5; ctx.textAlign = 'center';
 
-    if (gameState === 'playing' || gameState === 'gameOver') {
-        ctx.font = `bold ${largeFontSize}px Arial`;
-        ctx.strokeText(score, VIRTUAL_WIDTH/2, 60); ctx.fillText(score, VIRTUAL_WIDTH/2, 60);
-    }
+    if (gameState === 'playing' || gameState === 'gameOver') { ctx.font = `bold ${largeFontSize}px Arial`; ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80); }
     if (gameState === 'start') {
         ctx.font = `bold ${mediumFontSize}px Arial`;
-        ctx.strokeText('Clique para Começar', VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 - 20);
-        ctx.fillText('Clique para Começar', VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 - 20);
-        if (highScore > 0) { ctx.font = `bold ${smallFontSize}px Arial`; ctx.strokeText(`Melhor: ${highScore}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 + 30); ctx.fillText(`Melhor: ${highScore}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 + 30); }
+        ctx.strokeText('Clique para Começar', canvas.width/2, canvas.height/2 - 40);
+        ctx.fillText('Clique para Começar', canvas.width/2, canvas.height/2 - 40);
+        if (highScore > 0) { ctx.font = `bold ${smallFontSize}px Arial`; ctx.strokeText(`Melhor: ${highScore}`, canvas.width/2, canvas.height/2 + 20); ctx.fillText(`Melhor: ${highScore}`, canvas.width/2, canvas.height/2 + 20); }
     }
     if (gameState === 'gameOver') {
         ctx.font = `bold ${mediumFontSize}px Arial`;
-        ctx.strokeText('Game Over', VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 - 40);
-        ctx.fillText('Game Over', VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 - 40);
+        ctx.strokeText('Game Over', canvas.width/2, canvas.height/2 - 60);
+        ctx.fillText('Game Over', canvas.widh/2, canvas.height/2 - 60);
         ctx.font = `bold ${smallFontSize}px Arial`;
-        ctx.strokeText(`Pontos: ${score}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2);
-        ctx.fillText(`Pontos: ${score}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2);
-        ctx.strokeText(`Melhor: ${highScore}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 + 40);
-        ctx.fillText(`Melhor: ${highScore}`, VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2 + 40);
+        ctx.strokeText(`Pontos: ${score}`, canvas.width/2, canvas.height/2 - 10);
+        ctx.fillText(`Pontos: ${score}`, canvas.width/2, canvas.height/2 - 10);
+        ctx.strokeText(`Melhor: ${highScore}`, canvas.width/2, canvas.height/2 + 30);
+        ctx.fillText(`Melhor: ${highScore}`, canvas.width/2, canvas.height/2 + 30);
     }
-    
-    ctx.restore(); // Restaura o estado do canvas após a escala
 }
 
 // --- LOOP PRINCIPAL E EVENTOS ---
@@ -189,13 +139,12 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Adiciona um pouco de CSS para a animação de tremer a tela
 const style = document.createElement('style');
 style.innerHTML = `@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); }}`;
 document.head.appendChild(style);
 
-window.addEventListener('resize', resizeAndScale);
+document.addEventListener('click', handleInput);
+document.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); });
 for(let i=0; i<numBirdFrames; i++) { const img=new Image(); img.src=`player_frame_${i}.png`; birdImages.push(img); }
-resizeAndScale(); // Configura a escala inicial
 resetGame();
 gameLoop();
