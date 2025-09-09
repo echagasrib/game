@@ -1,12 +1,11 @@
-/* Arquivo: style.css - VERSÃO COM TELA FIXA */
-
+/* Arquivo: style.css */
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #1a1a1a; 
+    background-color: #000; /* Fundo preto para as bordas */
 }
 
 body {
@@ -20,7 +19,5 @@ canvas {
     background-color: #87CEEB;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    /* REVERTIDO: Não forçamos mais o tamanho aqui, o HTML cuida disso */
-    border: 2px solid #000;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    /* O JavaScript vai controlar o tamanho e a escala */
 }
