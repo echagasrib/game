@@ -1,4 +1,4 @@
-// Arquivo: game.js - Versão com Imagens do Player e Animação
+// Arquivo: game.js - VERSÃO COM IMAGEM DO PLAYER (1 FRAME)
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -18,20 +18,21 @@ let frameCount = 0;
 let bird = {
     x: 50,
     y: 150,
-    width: 32, // Largura da sua imagem pixelada (ajuste se necessário)
-    height: 24, // Altura da sua imagem pixelada (ajuste se necessário)
+    width: 32,  // Largura da sua imagem (ajuste se for diferente)
+    height: 32, // Altura da sua imagem (ajuste se for diferente)
     velocityY: 0
 };
 
-// NOVO: Carregar as imagens do pássaro
+// --- Carregar Imagem do Pássaro ---
 const birdImages = [];
-const numBirdFrames = 2; // Altere para o número de frames que você criou (ex: 2 ou 3)
+const numBirdFrames = 1; // CORRIGIDO: Agora espera apenas 1 imagem.
 for (let i = 0; i < numBirdFrames; i++) {
     const img = new Image();
-    img.src = `player_frame_${i}.png`; // Certifique-se que o nome do arquivo corresponde ao que você salvou
+    // CORRIGIDO: O nome do arquivo começa com "_0"
+    img.src = `player_frame_${i}.png`; 
     birdImages.push(img);
 }
-let currentBirdFrame = 0; // Para controlar a animação
+let currentBirdFrame = 0; 
 
 // --- VARIÁVEIS DOS CANOS ---
 let pipes = [];
@@ -40,6 +41,8 @@ let pipeWidth = 50;
 // --- PONTUAÇÃO E RANKING ---
 let score = 0;
 let highScore = localStorage.getItem('flappyBoloHighScore') || 0;
+
+// --- Funções Principais ---
 
 function handleInput() {
     if (gameState === 'start') {
@@ -50,7 +53,6 @@ function handleInput() {
     }
     if (gameState === 'gameOver') {
         resetGame();
-        gameState = 'start';
     }
 }
 
@@ -68,42 +70,37 @@ function updateGame() {
     bird.velocityY += gravity;
     bird.y += bird.velocityY;
 
-    // Colisão com chão ou teto
     if (bird.y + bird.height > canvas.height || bird.y < 0) {
         gameState = 'gameOver';
     }
 
-    // Geração de Canos
+    // Canos
     frameCount++;
     if (frameCount % pipeInterval === 0) {
         let pipeY = Math.random() * (canvas.height - pipeGap - 100) + 50;
         pipes.push({ x: canvas.width, y: pipeY, passed: false });
     }
 
-    // Move os canos, checa colisão e pontuação
     for (let i = pipes.length - 1; i >= 0; i--) {
         let p = pipes[i];
         p.x -= pipeSpeed;
 
-        // Checa colisão com o cano
         if (bird.x < p.x + pipeWidth && bird.x + bird.width > p.x &&
             (bird.y < p.y || bird.y + bird.height > p.y + pipeGap)) {
             gameState = 'gameOver';
         }
         
-        // Checa se passou pelo cano para pontuar
         if (p.x + pipeWidth < bird.x && !p.passed) {
             score++;
             p.passed = true;
         }
 
-        // Remove canos que saíram da tela
         if (p.x + pipeWidth < 0) {
             pipes.splice(i, 1);
         }
     }
 
-    // Lógica de High Score
+    // High Score
     if (gameState === 'gameOver') {
         if (score > highScore) {
             highScore = score;
@@ -111,8 +108,8 @@ function updateGame() {
         }
     }
 
-    // NOVO: Atualiza o frame da animação do pássaro
-    if (frameCount % 5 === 0) { // Mude o '5' para alterar a velocidade da animação
+    // Animação do Pássaro (mesmo com 1 frame, a estrutura fica pronta)
+    if (frameCount % 5 === 0) {
         currentBirdFrame = (currentBirdFrame + 1) % numBirdFrames;
     }
 }
@@ -127,11 +124,11 @@ function draw() {
         ctx.fillRect(p.x, p.y + pipeGap, pipeWidth, canvas.height - (p.y + pipeGap));
     }
 
-    // NOVO: Desenha a imagem do pássaro em vez do retângulo amarelo
-    if (birdImages[currentBirdFrame].complete) { // Verifica se a imagem já carregou
+    // Desenha a imagem do pássaro
+    if (birdImages[currentBirdFrame] && birdImages[currentBirdFrame].complete && birdImages[currentBirdFrame].naturalHeight !== 0) {
         ctx.drawImage(birdImages[currentBirdFrame], bird.x, bird.y, bird.width, bird.height);
     } else {
-        // Fallback: se a imagem não carregou, desenha o quadrado amarelo
+        // Fallback para o quadrado amarelo se a imagem não carregar
         ctx.fillStyle = 'yellow';
         ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
     }
