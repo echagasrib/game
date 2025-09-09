@@ -1,12 +1,13 @@
-// Arquivo: game.js - VERSÃO COM MENU E SELEÇÃO DE PERSONAGENS
+// Arquivo: game.js - VERSÃO CORRIGIDA DO MENU
 
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('d');
+// CORREÇÃO CRÍTICA AQUI: Trocado 'd' por '2d'
+const ctx = canvas.getContext('2d');
 
 canvas.width = 405;
 canvas.height = 720;
 
-// ATUALIZADO: Novos estados de jogo
+// --- ESTADO DO JOGO ---
 let gameState = 'menu'; // 'menu', 'charSelect', 'playing', 'gameOver'
 
 // --- CONFIGURAÇÕES GERAIS DO JOGO ---
@@ -28,25 +29,22 @@ let clouds = [];
 let cityscape = [];
 let particles = [];
 
-// --- NOVO: LÓGICA DE SELEÇÃO DE PERSONAGENS ---
-// No futuro, você vai adicionar suas imagens aqui!
+// --- LÓGICA DE SELEÇÃO DE PERSONAGENS ---
 const characters = [
-    { color: '#FFD700', name: 'Bolo' },       // Círculo Amarelo (Seu personagem principal)
-    { color: '#ADD8E6', name: 'Azul' },      // Círculo Azul
-    { color: '#90EE90', name: 'Verde' }      // Círculo Verde
+    { color: '#FFD700', name: 'Bolo' },
+    { color: '#ADD8E6', name: 'Azul' },
+    { color: '#90EE90', name: 'Verde' }
 ];
 let selectedCharacterIndex = 0;
 
-// --- NOVO: Definição de áreas de botões clicáveis ---
+// --- Definição de áreas de botões clicáveis ---
 let menuButtons = {};
 let charSelectButtons = {};
 
 // --- FUNÇÕES DE LÓGICA E ESTADO ---
-
 function changeState(newState) {
     gameState = newState;
     if (gameState === 'playing') {
-        // Prepara as variáveis para um novo jogo com o personagem selecionado
         bird = { x: 80, y: 350, width: 48, height: 48, velocityY: 0, rotation: 0 };
         pipes = [];
         score = 0;
@@ -56,13 +54,11 @@ function changeState(newState) {
 }
 
 function resetGame() {
-    // Ao perder, volta para o menu principal
     changeState('menu');
 }
 
 
 // --- FUNÇÃO DE INPUT (CLIQUE) ---
-
 function handleInput(event) {
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
@@ -73,13 +69,11 @@ function handleInput(event) {
             changeState('charSelect');
         }
     } else if (gameState === 'charSelect') {
-        // Checa se clicou em algum personagem
         charSelectButtons.chars.forEach((charButton, index) => {
             if (isClickInsideRect({x: clickX, y: clickY}, charButton)) {
                 selectedCharacterIndex = index;
             }
         });
-        // Checa se clicou no botão "Jogar"
         if (isClickInsideRect({x: clickX, y: clickY}, charSelectButtons.play)) {
             changeState('playing');
         }
@@ -97,7 +91,6 @@ function isClickInsideRect(click, rect) {
 }
 
 // --- FUNÇÕES DE UPDATE ---
-
 function update() {
     if (gameState !== 'playing') return;
     
@@ -126,14 +119,12 @@ function update() {
     });
     pipes = pipes.filter(p => p.x + pipeWidth > 0);
     
-    // ... (update de nuvens, cidade e partículas não muda)
     clouds.forEach(c => c.x -= pipeSpeed/4); clouds = clouds.filter(c => c.x + 100 < 0);
     cityscape.forEach(b => b.x -= pipeSpeed/5); cityscape = cityscape.filter(b => b.x + b.width > 0);
     particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; }); particles = particles.filter(p => p.life > 0);
 }
 
 // --- FUNÇÕES DE DESENHO (DRAW) ---
-
 function drawMenu() {
     drawBackground();
     ctx.textAlign = 'center';
@@ -145,7 +136,6 @@ function drawMenu() {
     ctx.strokeText('Flappy Bolo', canvas.width / 2, 200);
     ctx.fillText('Flappy Bolo', canvas.width / 2, 200);
 
-    // Botão Jogar
     const btnW = 220, btnH = 70, btnX = canvas.width/2 - btnW/2, btnY = 350;
     menuButtons.play = { x: btnX, y: btnY, w: btnW, h: btnH };
     ctx.fillStyle = '#73BF29';
@@ -170,7 +160,6 @@ function drawCharSelect() {
     ctx.strokeText('Escolha seu Personagem', canvas.width / 2, 150);
     ctx.fillText('Escolha seu Personagem', canvas.width / 2, 150);
 
-    // Desenha as opções de personagem
     const startX = canvas.width / 2 - 120;
     charSelectButtons.chars = [];
     characters.forEach((char, index) => {
@@ -191,7 +180,6 @@ function drawCharSelect() {
         }
     });
 
-    // Botão Jogar
     const btnW = 220, btnH = 70, btnX = canvas.width/2 - btnW/2, btnY = 500;
     charSelectButtons.play = { x: btnX, y: btnY, w: btnW, h: btnH };
     ctx.fillStyle = '#73BF29';
@@ -211,11 +199,9 @@ function drawGame() {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); });
 
-    // Desenha o personagem selecionado
     ctx.save();
     ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
     ctx.rotate(bird.rotation);
-    // Aqui usaremos a cor do personagem selecionado
     ctx.beginPath();
     ctx.arc(0, 0, bird.width/2, 0, Math.PI*2);
     ctx.fillStyle = characters[selectedCharacterIndex].color;
@@ -228,8 +214,7 @@ function drawGame() {
 }
 
 function drawGameOver() {
-    drawGame(); // Desenha o estado final do jogo
-    // Efeito de escurecimento
+    drawGame();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -245,30 +230,21 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     switch (gameState) {
-        case 'menu':
-            drawMenu();
-            break;
-        case 'charSelect':
-            drawCharSelect();
-            break;
-        case 'playing':
-            drawGame();
-            break;
-        case 'gameOver':
-            drawGameOver();
-            break;
+        case 'menu': drawMenu(); break;
+        case 'charSelect': drawCharSelect(); break;
+        case 'playing': drawGame(); break;
+        case 'gameOver': drawGameOver(); break;
     }
 }
 
-// --- Funções Auxiliares de Desenho (para não repetir código) ---
-function drawBackground() { /* ... (código do fundo, nuvens, cidade não muda) ... */
+function drawBackground() {
     const skyGradient = ctx.createLinearGradient(0,0,0,canvas.height);
     skyGradient.addColorStop(0, '#3a7bd5'); skyGradient.addColorStop(1, '#a6c1ee');
     ctx.fillStyle = skyGradient; ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = '#1e3040'; cityscape.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; clouds.forEach(c => ctx.fillRect(c.x, c.y, c.width, c.height));
 }
-function drawPipes() { /* ... (código dos canos não muda) ... */
+function drawPipes() {
     pipes.forEach(p => {
         const pipeGradient = ctx.createLinearGradient(p.x,0,p.x+pipeWidth,0);
         pipeGradient.addColorStop(0,'#55801F'); pipeGradient.addColorStop(0.5,'#73BF29'); pipeGradient.addColorStop(1,'#55801F');
@@ -289,11 +265,9 @@ style.innerHTML = `@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0,
 document.head.appendChild(style);
 
 canvas.addEventListener('click', handleInput);
-for(let i=0; i<numBirdFrames; i++) { const img=new Image(); img.src=`player_frame_${i}.png`; birdImages.push(img); }
 resetGame();
 gameLoop();
 
-// Funções de geração que não precisam estar dentro de outra
 function generatePipe() { const newPipeGap = Math.random()*(MAX_PIPE_GAP-MIN_PIPE_GAP)+MIN_PIPE_GAP; const minHeight=60; const maxHeight=canvas.height-newPipeGap-100; let pipeY=Math.floor(Math.random()*(maxHeight-minHeight+1))+minHeight; pipes.push({x:canvas.width,y:pipeY,gap:newPipeGap,passed:false}); }
 function generateCityscape() { let currentX = -40; while(currentX < canvas.width + 60){ const h = 70 + Math.random() * 100; const w = 30 + Math.random() * 40; cityscape.push({x:currentX, y:canvas.height-h, width:w, height:h}); currentX += w + 3; } }
 function createFlapParticles() { for(let i=0; i<5; i++){ particles.push({ x: bird.x + bird.width/2, y: bird.y + bird.height/2, radius: Math.random()*2+1, vx: (Math.random()-0.5)*1.5, vy: Math.random()*1.5+0.5, life: 30 }); } }
