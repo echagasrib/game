@@ -1,12 +1,10 @@
-/* Arquivo: style.css - VERSÃO ESTÁVEL COM TELA MAIOR */
-
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #111; /* Fundo escuro para a área externa */
+    background-color: #111;
 }
 
 body {
@@ -20,7 +18,6 @@ canvas {
     background-color: #87CEEB;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    /* Adiciona uma borda e sombra para destacar no PC */
     border: 2px solid #000;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
