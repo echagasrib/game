@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURAÇÕES DO JOGO ---
     // ATUALIZADO: Usando uma única palavra secreta para teste, sem depender de listas.
-    const palavraSecreta = "Penis"; 
+    const palavraSecreta = "PENIS"; 
     
     const NUMERO_DE_TENTATIVAS = 6;
     const TAMANHO_DA_PALAVRA = 5;
